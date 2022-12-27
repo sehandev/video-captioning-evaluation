@@ -1,3 +1,6 @@
+import torch
+from tqdm.auto import tqdm
+from libs.model import ModelManager
 from libs.preprocess import load_data
 
 DATA_DIR = "./data"
@@ -18,7 +21,10 @@ def main():
             "caption_from_old": "caption",
         },
     )
-    print(data_df)
+    manager = ModelManager(model_name="roberta-base")
+    for _, row in tqdm(data_df.iterrows(), total=len(data_df)):
+        cls_vector = manager.get_cls_vector(row["caption"])
+        torch.save(cls_vector, f"{DATA_DIR}/cls/{row.clip_id}.pt")
 
     # similarity = calculate_similarity("abc", "bcd")
     # print(similarity)
