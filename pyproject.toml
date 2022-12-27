@@ -10,6 +10,8 @@ packages = [{include = "video_captioning_evaluation"}]
 [tool.poetry.dependencies]
 python = "^3.8"
 pandas = "^1.5.2"
+transformers = "^4.25.1"
+torch = "^1.13.1"
 
 [tool.poetry.group.dev.dependencies]
 black = {version = "^23.1a1", allow-prereleases = true}
