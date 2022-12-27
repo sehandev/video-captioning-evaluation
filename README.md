@@ -5,7 +5,7 @@ Evaluate datasets for video captioning
 
 ## TODO
 - [ ]  Load model (v0.3.0)
-- [ ]  Preprocess dataset (v0.2.0)
+- [x]  Preprocess dataset (v0.2.0)
 - [x]  Init project (v0.1.0)
 
 # How to
