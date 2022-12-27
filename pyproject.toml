@@ -10,6 +10,9 @@ packages = [{include = "video_captioning_evaluation"}]
 [tool.poetry.dependencies]
 python = "^3.7"
 
+[tool.poetry.group.dev.dependencies]
+black = {version = "^23.1a1", allow-prereleases = true}
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
