@@ -1,4 +1,6 @@
-from transformers import logging, AutoTokenizer, AutoModel
+import torch
+import torch.nn.functional as F
+from transformers import logging, AutoTokenizer, AutoModelForNextSentencePrediction
 
 logging.set_verbosity_error()
 
@@ -15,22 +17,24 @@ class ModelManager:
         return tokenizer
 
     def load_model(self):
-        model = AutoModel.from_pretrained(self.model_name)
+        model = AutoModelForNextSentencePrediction.from_pretrained(self.model_name)
         print(f"Finish load model - {self.model_name}")
         return model
 
-    def encode_sentence(self, sentence: str):
-        return self.tokenizer(sentence, return_tensors="pt")
+    def encode_sentences_with_sep(self, sentence_1: str, sentence_2: str):
+        return self.tokenizer(sentence_1, sentence_2, return_tensors="pt")
 
-    def get_cls_vector(self, sentence: str):
-        encoded_sentence = self.encode_sentence(sentence)
-        output = self.model(**encoded_sentence)
-        output = output.pooler_output
+    def get_nsp_score(self, sentence_1: str, sentence_2: str):
+        encoded_sentences = self.encode_sentences_with_sep(sentence_1, sentence_2)
+        with torch.no_grad():
+            output = self.model(**encoded_sentences)
+        output = F.softmax(output.logits, dim=1)
         return output
 
 
 if __name__ == "__main__":
-    manager = ModelManager(model_name="roberta-base")
-    text = "Replace me by any text you'd like."
-    output = manager.get_cls_vector(text)
-    print(output.shape)
+    manager = ModelManager(model_name="bert-base-uncased")
+    text1 = "Replace me by any text you'd like."
+    text2 = "Last layer hidden-state of the first token of the sequence."
+    output = manager.get_nsp_score(text1, text2)
+    print(output)
