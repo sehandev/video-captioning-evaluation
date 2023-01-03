@@ -4,7 +4,7 @@ from libs.model import ModelManager
 from libs.preprocess import load_data
 
 DATA_DIR = "./data"
-DATA_NAME = "descriptions_train_val.csv"
+DATA_NAME = "desc_and_plot_val.csv"
 OUTPUT_DIR = "./output"
 
 
@@ -18,9 +18,10 @@ def main():
         data_dir=DATA_DIR,
         data_filename=DATA_NAME,
         rename_dict={
-            "videoid": "clip_id",
-            "imdbid": "video_id",
+            "videoid": "video_id",
+            "imdbid": "movie_id",
             "caption_from_old": "caption",
+            "synopsis": "plot",
         },
     )
     manager = ModelManager(model_name="bert-base-uncased")
@@ -33,18 +34,20 @@ def main():
         total=len(data_df),
         position=0,
     ):
-        coherence_dict[front_row.clip_id] = dict()
-        front_sentence = front_row.caption
+        coherence_dict[front_row["video_id"]] = dict()
+        front_sentence = front_row["caption"]
         for _, back_row in tqdm(
             data_df.iterrows(),
             total=len(data_df),
             position=1,
             leave=False,
         ):
-            back_sentence = back_row.caption
+            back_sentence = back_row["caption"]
             coherence_score = manager.get_nsp_score(front_sentence, back_sentence)
             coherence_score = coherence_score[0][0].item()
-            coherence_dict[front_row.clip_id][back_row.clip_id] = coherence_score
+            coherence_dict[front_row["video_id"]][
+                back_row["video_id"]
+            ] = coherence_score
 
     save_coherence_to_json(coherence_dict)
 

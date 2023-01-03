@@ -9,8 +9,8 @@ def load_data(data_dir: str, data_filename: str, rename_dict: dict = None):
     print(f"Read csv from {data_path}")
 
     data_df = pd.read_csv(data_path)
-    data_df = data_df[rename_dict.keys()]
     if rename_dict:
+        data_df = data_df[rename_dict.keys()]
         data_df = data_df.rename(columns=rename_dict)
-    data_df = data_df.sort_values(by="video_id", ignore_index=True)
+    data_df = data_df.sort_values(by="movie_id", ignore_index=True)
     return data_df
