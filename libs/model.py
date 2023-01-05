@@ -17,7 +17,7 @@ class ModelManager:
         return tokenizer
 
     def load_model(self):
-        model = AutoModelForNextSentencePrediction.from_pretrained(self.model_name)
+        model = AutoModelForNextSentencePrediction.from_pretrained(self.model_name).to("cuda")
         print(f"Finish load model - {self.model_name}")
         return model
 
