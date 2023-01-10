@@ -1,6 +1,6 @@
 from typing import List
 import torch
-from model import ModelManager
+from libs.model import ModelManager
 
 
 def split_document(document: str) -> List[str]:
@@ -12,13 +12,16 @@ def split_document(document: str) -> List[str]:
 def generate_sentence_vectors(document: str, manager: ModelManager):
     sentence_list = split_document(document)
     encoded_sentences = manager.tokenizer(
-        sentence_list, padding=True, return_tensors="pt"
+        sentence_list,
+        padding=True,
+        add_special_tokens=False,
+        return_tensors="pt",
     ).to("cuda")
-    with torch.no_grad():
-        output = manager.model(**encoded_sentences)
-        # output: (# of sentences, # of word, embedding size)
 
-    output = torch.mean(output.last_hidden_state, dim=1)
+    with torch.no_grad():
+        output = manager.model(**encoded_sentences, output_hidden_states=True)
+        # output: (# of sentences, # of word, embedding size)
+    output = torch.mean(output.hidden_states[-1], dim=1)
     # output: (# of sentences, embedding size)
 
     return output
