@@ -13,6 +13,23 @@ def save_coherence_to_json(coherence_dict: dict):
         json.dump(coherence_dict, coherence_file, indent=2)
 
 
+def get_score_result(row, manager: ModelManager, ground_truth: bool = True) -> dict:
+    coherence_score, is_long_document = manager.get_nsp_score_with_sentence_vector(
+        document_1=row["plot"],
+        document_2=row["caption"],
+    )
+    if is_long_document:
+        coherence_score = 0.0
+    else:
+        coherence_score = coherence_score[0][0].item()
+
+    return {
+        "movie_id": row["movie_id"],
+        "target": 1.0 if ground_truth else 0.0,
+        "predict": coherence_score,
+    }
+
+
 def main():
     data_df = load_data(
         data_dir=DATA_DIR,
@@ -28,22 +45,29 @@ def main():
 
     # Calculate coherence between sentence
     coherence_dict = dict()
-    for _, row in tqdm(
+    for _, positive_row in tqdm(
         data_df.iterrows(),
         desc="Coherence",
         total=len(data_df),
     ):
-        # TODO plot 1개에 해당하는 caption n개, 다른 caption n개를 NSP
-        # 현재 plot 1개, 해당하는 caption n개, 다른 caption 0개
-        coherence_dict[row["video_id"]] = dict()
-        coherence_score, is_long_document = manager.get_nsp_score_with_sentence_vector(
-            row["plot"], row["caption"]
-        )
-        if is_long_document:
-            coherence_score = 0.0
-        else:
-            coherence_score = coherence_score[0][0].item()
-        coherence_dict[row["video_id"]] = coherence_score
+        movie_id = positive_row["movie_id"]
+        if movie_id not in coherence_dict:
+            coherence_dict[movie_id] = dict()
+
+        # Positive sample
+        score_result = get_score_result(positive_row, manager, ground_truth=True)
+        coherence_dict[positive_row["movie_id"]][
+            positive_row["video_id"]
+        ] = score_result
+
+        # Negative sample
+        while movie_id == positive_row["movie_id"]:
+            negative_row = data_df.sample(n=1).iloc[0]
+            movie_id = negative_row["movie_id"]
+        score_result = get_score_result(negative_row, manager, ground_truth=False)
+        coherence_dict[positive_row["movie_id"]][
+            negative_row["video_id"]
+        ] = score_result
 
     save_coherence_to_json(coherence_dict)
 
