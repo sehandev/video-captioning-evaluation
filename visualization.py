@@ -8,12 +8,7 @@ RESULT_PATH = OUTPUT_DIR / "coherence.json"
 IMAGE_PATH = OUTPUT_DIR / "coherence.jpg"
 
 
-def main():
-    with open(RESULT_PATH, "r") as result_file:
-        result_dict = json.load(result_file)
-
-    coherence_score_list = list(result_dict.values())
-
+def calculate_score_range(coherence_score_list):
     score_range_dict = {
         "0.0": 0,
         "0.1": 0,
@@ -27,6 +22,7 @@ def main():
         "0.9": 0,
         "1.0": 0,
     }
+
     for coherence_score in coherence_score_list:
         if coherence_score == 0.0:
             score_range_dict["0.0"] += 1
@@ -51,10 +47,20 @@ def main():
         else:
             score_range_dict["1.0"] += 1
 
+    return score_range_dict
+
+
+def main():
+    with open(RESULT_PATH, "r") as result_file:
+        result_dict = json.load(result_file)
+
+    coherence_score_list = list(result_dict.values())
+    score_range_dict = calculate_score_range(coherence_score_list)
+
     sns.set_theme(style="dark")
     sns.scatterplot(data=score_range_dict)
-    
-    plt.title('Coherence score range')
+
+    plt.title("Coherence score range")
     plt.savefig(IMAGE_PATH)
 
 
