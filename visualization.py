@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 import matplotlib.pyplot as plt
+import pandas as pd
 import seaborn as sns
 
 OUTPUT_DIR = Path("./output")
@@ -8,57 +9,29 @@ RESULT_PATH = OUTPUT_DIR / "coherence.json"
 IMAGE_PATH = OUTPUT_DIR / "coherence.jpg"
 
 
-def calculate_score_range(coherence_score_list):
-    score_range_dict = {
-        "0.0": 0,
-        "0.1": 0,
-        "0.2": 0,
-        "0.3": 0,
-        "0.4": 0,
-        "0.5": 0,
-        "0.6": 0,
-        "0.7": 0,
-        "0.8": 0,
-        "0.9": 0,
-        "1.0": 0,
-    }
-
-    for coherence_score in coherence_score_list:
-        if coherence_score == 0.0:
-            score_range_dict["0.0"] += 1
-        elif coherence_score < 0.1:
-            score_range_dict["0.1"] += 1
-        elif coherence_score < 0.2:
-            score_range_dict["0.2"] += 1
-        elif coherence_score < 0.3:
-            score_range_dict["0.3"] += 1
-        elif coherence_score < 0.4:
-            score_range_dict["0.4"] += 1
-        elif coherence_score < 0.5:
-            score_range_dict["0.5"] += 1
-        elif coherence_score < 0.6:
-            score_range_dict["0.6"] += 1
-        elif coherence_score < 0.7:
-            score_range_dict["0.7"] += 1
-        elif coherence_score < 0.8:
-            score_range_dict["0.8"] += 1
-        elif coherence_score < 0.9:
-            score_range_dict["0.9"] += 1
-        else:
-            score_range_dict["1.0"] += 1
-
-    return score_range_dict
-
-
 def main():
     with open(RESULT_PATH, "r") as result_file:
         result_dict = json.load(result_file)
 
-    coherence_score_list = list(result_dict.values())
-    score_range_dict = calculate_score_range(coherence_score_list)
+    new_dict = {
+        "predict": [],
+        "target": [],
+    }
 
-    sns.set_theme(style="dark")
-    sns.scatterplot(data=score_range_dict)
+    for score_dict in result_dict.values():
+        for tmp_dict in score_dict.values():
+            new_dict["predict"].append(tmp_dict["predict"])
+            new_dict["target"].append(bool(tmp_dict["target"]))
+
+    score_df = pd.DataFrame.from_dict(new_dict)
+
+    sns.stripplot(
+        data=score_df,
+        x="target",
+        y="predict",
+        hue="target",
+        legend=False,
+    )
 
     plt.title("Coherence score range")
     plt.savefig(IMAGE_PATH)
