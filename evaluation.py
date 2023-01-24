@@ -8,7 +8,7 @@ from libs.preprocess import load_data
 DATA_DIR = "./data"
 DATA_NAME = "desc_and_plot_train.csv"
 OUTPUT_DIR = "./output"
-device = torch.device("cuda:3")
+device = torch.device("cuda:0")
 
 
 def save_coherence_to_json(coherence_dict: dict):

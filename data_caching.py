@@ -30,7 +30,10 @@ def main(
         },
     )
 
-    manager = ModelManager(model_name)
+    manager = ModelManager(
+        model_name,
+        device=torch.device("cuda:0"),
+    )
 
     for _, row in tqdm(
         data_df.iterrows(),
