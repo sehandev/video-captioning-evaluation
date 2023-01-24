@@ -16,7 +16,7 @@ def generate_sentence_vectors(document: str, manager: ModelManager):
         padding=True,
         add_special_tokens=False,
         return_tensors="pt",
-    ).to("cuda")
+    ).to(manager.device)
 
     with torch.no_grad():
         output = manager.model(**encoded_sentences, output_hidden_states=True)

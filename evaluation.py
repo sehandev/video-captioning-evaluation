@@ -1,11 +1,14 @@
 import json
+import torch
 from tqdm.auto import tqdm
+from data_caching import CACHE_CAPTION_DIR, CACHE_PLOT_DIR
 from libs.model import ModelManager
 from libs.preprocess import load_data
 
 DATA_DIR = "./data"
 DATA_NAME = "desc_and_plot_train.csv"
 OUTPUT_DIR = "./output"
+device = torch.device("cuda:3")
 
 
 def save_coherence_to_json(coherence_dict: dict):
@@ -14,10 +17,21 @@ def save_coherence_to_json(coherence_dict: dict):
 
 
 def get_score_result(row, manager: ModelManager, ground_truth: bool = True) -> dict:
-    coherence_score, is_long_document = manager.get_nsp_score_with_sentence_vector(
-        document_1=row["plot"],
-        document_2=row["caption"],
-    )
+    cached_plot_path = CACHE_PLOT_DIR / f"{row['movie_id']}.pt"
+    cached_caption_path = CACHE_CAPTION_DIR / f"{row['video_id']}.pt"
+
+    if cached_plot_path.exists() and cached_caption_path.exists():
+        plot_vector = torch.load(cached_plot_path, map_location=device)
+        caption_vector = torch.load(cached_caption_path, map_location=device)
+        coherence_score, is_long_document = manager.get_nsp_score_with_sentence_vector(
+            sentence_vector_1=plot_vector,
+            sentence_vector_2=caption_vector,
+        )
+    else:
+        coherence_score, is_long_document = manager.get_nsp_score_with_document(
+            document_1=row["plot"],
+            document_2=row["caption"],
+        )
     if is_long_document:
         coherence_score = 0.0
     else:
@@ -41,7 +55,7 @@ def main():
             "synopsis": "plot",
         },
     )
-    manager = ModelManager(model_name="bert-base-uncased")
+    manager = ModelManager(model_name="bert-base-uncased", device=device)
 
     # Calculate coherence between sentence
     coherence_dict = dict()
