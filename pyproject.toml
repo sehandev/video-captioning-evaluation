@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "video-captioning-evaluation"
-version = "0.2.0"
+version = "0.4.0"
 description = ""
 authors = ["sehandev"]
 license = "MIT"
