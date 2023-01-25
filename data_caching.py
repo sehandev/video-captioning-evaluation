@@ -34,6 +34,8 @@ def main(
         model_name,
         device=torch.device("cuda:0"),
     )
+    torch.save(manager.cls_vector, CACHE_DIR / "cls.pt")
+    torch.save(manager.sep_vector, CACHE_DIR / "sep.pt")
 
     for _, row in tqdm(
         data_df.iterrows(),
