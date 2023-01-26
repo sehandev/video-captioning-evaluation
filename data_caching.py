@@ -36,6 +36,7 @@ def main(
     )
     torch.save(manager.cls_vector, CACHE_DIR / "cls.pt")
     torch.save(manager.sep_vector, CACHE_DIR / "sep.pt")
+    torch.save(manager.pad_vector, CACHE_DIR / "pad.pt")
 
     for _, row in tqdm(
         data_df.iterrows(),
