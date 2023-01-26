@@ -5,6 +5,7 @@ from pytorch_lightning import (
     Trainer,
     seed_everything,
 )
+from pytorch_lightning.loggers import WandbLogger
 import torch
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
@@ -43,6 +44,7 @@ class PlotCaptionDataset(Dataset):
         )
         self.cls_vector = torch.load(CACHE_DIR / "cls.pt", map_location="cpu")
         self.sep_vector = torch.load(CACHE_DIR / "sep.pt", map_location="cpu")
+        self.pad_vector = torch.load(CACHE_DIR / "pad.pt", map_location="cpu")
 
     def __len__(self) -> int:
         # Positive sample, Negative sample
@@ -50,11 +52,11 @@ class PlotCaptionDataset(Dataset):
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, bool]:
         row = self.data_df.iloc[idx // 2]
-        label = True
+        label = 1
 
         # Negative sample
         if idx % 2 != 0:
-            label = False
+            label = 0
             movie_id = row["movie_id"]
             while movie_id == row["movie_id"]:
                 row = self.data_df.sample(n=1).iloc[0]
@@ -71,6 +73,8 @@ class PlotCaptionDataset(Dataset):
             (self.cls_vector, plot_vector, self.sep_vector, caption_vector),
             dim=0,
         )
+        if sentence_vectors.size(dim=0) > 512:
+            sentence_vectors = sentence_vectors[:512]
         return sentence_vectors, label
 
 
@@ -149,6 +153,7 @@ class PlotCaptionNSPModel(LightningModule):
         sentence_vectors, labels = batch
         outputs = self(sentence_vectors)
         loss = F.cross_entropy(outputs, labels)
+        self.log("train_loss", loss)
         return loss
 
     def validation_step(self, batch, batch_idx, dataloader_idx=0):
@@ -157,15 +162,15 @@ class PlotCaptionNSPModel(LightningModule):
         loss = F.cross_entropy(outputs, labels)
 
         preds = torch.argmax(outputs, axis=1)
-        acc = torch.sum(preds == labels)
+        acc = torch.sum(preds == labels) / len(labels)
 
         return {"loss": loss, "acc": acc}
 
     def validation_epoch_end(self, outputs):
         loss = torch.stack([x["loss"] for x in outputs]).mean()
         acc = torch.stack([x["acc"] for x in outputs]).mean()
-        self.log("val_loss", loss, prog_bar=True)
-        self.log("val_acc", acc, prog_bar=True)
+        self.log("val_loss", loss, prog_bar=True, sync_dist=True)
+        self.log("val_acc", acc, prog_bar=True, sync_dist=True)
 
     def configure_optimizers(self):
         return Adafactor(
@@ -185,16 +190,26 @@ class PlotCaptionNSPModel(LightningModule):
 if __name__ == "__main__":
     seed_everything(42)
 
-    dm = PlotCaptionDataModule(model_name_or_path=MODEL_NAME_OR_PATH)
+    dm = PlotCaptionDataModule(
+        model_name_or_path=MODEL_NAME_OR_PATH,
+        train_batch_size=1,
+        eval_batch_size=1,
+    )
     dm.setup("fit")
     model = PlotCaptionNSPModel(
         model_name_or_path=MODEL_NAME_OR_PATH,
     )
 
+    wandb_logger = WandbLogger(project="LongStory")
+
     trainer = Trainer(
-        max_epochs=2,
+        logger=wandb_logger,
+        max_epochs=50,
         accelerator="gpu",
-        devices=4 if torch.cuda.is_available() else None,
-        strategy="ddp",
+        devices="auto",
+        strategy="deepspeed",
+        precision=16,
+        accumulate_grad_batches=8,
+        num_sanity_val_steps=0,
     )
     trainer.fit(model, datamodule=dm)
