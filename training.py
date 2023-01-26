@@ -108,6 +108,7 @@ class PlotCaptionDataModule(LightningDataModule):
             batch_size=self.train_batch_size,
             shuffle=True,
             pin_memory=True,
+            num_workers=32,
         )
 
     def val_dataloader(self):
@@ -115,6 +116,7 @@ class PlotCaptionDataModule(LightningDataModule):
             self.dataset["validation"],
             batch_size=self.eval_batch_size,
             pin_memory=True,
+            num_workers=32,
         )
 
     def test_dataloader(self):
@@ -122,6 +124,7 @@ class PlotCaptionDataModule(LightningDataModule):
             self.dataset["test"],
             batch_size=self.eval_batch_size,
             pin_memory=True,
+            num_workers=32,
         )
 
 
@@ -190,7 +193,8 @@ if __name__ == "__main__":
 
     trainer = Trainer(
         max_epochs=2,
-        accelerator="auto",
-        devices=1 if torch.cuda.is_available() else None,
+        accelerator="gpu",
+        devices=4 if torch.cuda.is_available() else None,
+        strategy="ddp",
     )
     trainer.fit(model, datamodule=dm)
