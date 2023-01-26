@@ -53,7 +53,7 @@ class PlotCaptionDataset(Dataset):
         label = True
 
         # Negative sample
-        if idx % 2 == 1:
+        if idx % 2 != 0:
             label = False
             movie_id = row["movie_id"]
             while movie_id == row["movie_id"]:
