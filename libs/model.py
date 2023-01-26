@@ -10,7 +10,7 @@ class ModelManager:
     def __init__(
         self,
         model_name: str = "roberta-base",
-        device = torch.device("cpu"),
+        device=torch.device("cpu"),
     ):
         self.model_name = model_name
         self.device = device
@@ -18,6 +18,7 @@ class ModelManager:
         self.model = self.load_model()
         self.cls_vector = self.get_cls_vector()
         self.sep_vector = self.get_sep_vector()
+        self.pad_vector = self.get_pad_vector()
 
     def load_tokenizer(self):
         tokenizer = AutoTokenizer.from_pretrained(self.model_name, use_fast=True)
@@ -30,7 +31,9 @@ class ModelManager:
         return model
 
     def encode_sentences_with_sep(self, sentence_1: str, sentence_2: str):
-        return self.tokenizer(sentence_1, sentence_2, return_tensors="pt").to(self.device)
+        return self.tokenizer(sentence_1, sentence_2, return_tensors="pt").to(
+            self.device
+        )
 
     def get_cls_vector(self):
         cls_token = self.tokenizer(
@@ -51,6 +54,16 @@ class ModelManager:
         with torch.no_grad():
             sep_vector = self.model(**sep_token, output_hidden_states=True)
         return sep_vector.hidden_states[-1].squeeze(0)
+
+    def get_pad_vector(self):
+        pad_token = self.tokenizer(
+            self.tokenizer.pad_token,
+            add_special_tokens=False,
+            return_tensors="pt",
+        ).to(self.device)
+        with torch.no_grad():
+            pad_vector = self.model(**pad_token, output_hidden_states=True)
+        return pad_vector.hidden_states[-1].squeeze(0)
 
     def get_nsp_score(self, sentence_1: str, sentence_2: str):
         encoded_sentences = self.encode_sentences_with_sep(sentence_1, sentence_2)
@@ -80,7 +93,11 @@ class ModelManager:
         output = F.softmax(output.logits, dim=1)
         return output, False
 
-    def get_nsp_score_with_sentence_vector(self, sentence_vector_1: torch.Tensor, sentence_vector_2: torch.Tensor):
+    def get_nsp_score_with_sentence_vector(
+        self,
+        sentence_vector_1: torch.Tensor,
+        sentence_vector_2: torch.Tensor,
+    ):
         # sentence_vector_1, sentence_vector_2: (# of sentences, embedding size)
         sentence_vectors = torch.cat(
             (self.cls_vector, sentence_vector_1, self.sep_vector, sentence_vector_2),
